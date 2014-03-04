@@ -31,4 +31,4 @@ Using
 — Add word with description for !&lt;WORD&gt; command.
 
 *!delword &lt;WORD&gt;*
-— Delete !&ltWORD&gt; from base.
+— Delete &lt;WORD&gt; from base.
