@@ -7,6 +7,7 @@ import re
 import urllib2
 import json
 import datetime, time
+from datetime import datetime, timedelta
 from xml.dom.minidom import *
 import os.path
 
@@ -302,40 +303,58 @@ def HoursToDate(hours):
 
 #--------------------------------------------------------------------------------
 def GetStreamInfo(name):
-	"""
-	Gathering stream information.
-	"""
-	url = 'https://api.twitch.tv/kraken/streams/' +name
-	#print url
-	stream = {}
-	try:
-	#if 1 == 1:
-		req = urllib2.urlopen(url)
-		js = json.loads(req.read())
-		#print js
+		"""
+		Gathering stream information.
+		"""
+		twitch_url = 'https://api.twitch.tv/kraken/streams/' +name
+		jtv_url = 'http://api.justin.tv/api/stream/list.json?channel=' +name
+		stream = {}
+		try:
+		#if 1 == 1:
+				req = urllib2.urlopen(twitch_url)
+				js = json.loads(req.read())
+				#print js
+				if 'error' in js:
+						return { "error": 3, "message": "Stream not found." }
 
-		if 'error' in js:
-			return { "error": 3, "message": "Stream not found." }
+				elif js["stream"]:
+						stream["title"] =			js["stream"]["channel"]["status"]
+						stream["viewers"] =			js["stream"]["viewers"]
+						stream["game"] =			js["stream"]["game"]
+						stream["name"] =			js["stream"]["channel"]["display_name"]
+						stream["streamer"] =		js["stream"]["channel"]["name"]
+						#stream["stream_date"] =	js["stream"]["channel"]["updated_at"]
+						stream["followers"] =		js["stream"]["channel"]["followers"]
+						stream["url"] =				js["stream"]["channel"]["url"]
+						stream["error"] =			0
 
-		elif js["stream"]:
-			#print js["stream"]
-			stream["title"] =		js["stream"]["channel"]["status"]
-			stream["viewers"] =		js["stream"]["viewers"]
-			stream["game"] =		js["stream"]["game"]
-			stream["name"] =		js["stream"]["channel"]["display_name"]
-			stream["streamer"] =	js["stream"]["channel"]["name"]
-			stream["stream_date"] = js["stream"]["channel"]["updated_at"]
-			stream["followers"] =	js["stream"]["channel"]["followers"]
-			stream["url"] =			js["stream"]["channel"]["url"]
-			stream["error"] =		0
+						try:
+							req = urllib2.urlopen(jtv_url)
+							js = json.loads(req.read())
 
-			return stream
-		else:
-			return { "error": 2, "message": "Stream is offline." }
-	except:
-		return { "error": 1, "message": "Error in request." }
+							if len(js) > 0:
+								time1 = time.strptime(str(js[0]["up_time"]), "%a %b %d %H:%M:%S %Y")
+								time2 = time.strptime(str(datetime.now()-timedelta(hours=11)), "%Y-%m-%d %H:%M:%S.%f")
+								stream["uptime"] = time.mktime(time2) - time.mktime(time1)
+						except:
+							return {"error": 4, "message": "Can't load justin API" }
+
+						return stream
+				else:
+						return { "error": 2, "message": "Stream is offline." }
+		except:
+				return { "error": 1, "message": "Error in request." }
 #--------------------------------------------------------------------------------
 
+#--------------------------------------------------------------------------------
+def Connect():
+	global s
+	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+	s.connect((HOST, PORT))
+
+	Auth(NICK, PASS, IDENT, HOST, REALNAME)
+	JOIN(CHANNEL)
+#--------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 	import sys
@@ -347,19 +366,16 @@ if __name__ == "__main__":
 		print "Test FAILED"
 		sys.exit(0)
 
-
-s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-s.connect((HOST, PORT))
-
-Auth(NICK, PASS, IDENT, HOST, REALNAME)
-JOIN(CHANNEL)
-
 readwords()
 readbuffer = ""
 
+Connect()
 while 1:
 #	readbuffer = readbuffer +s.recv(1024)
 	readbuffer = s.recv(1024)
+	if len(readbuffer) == 0:
+		print "*** DISCONNECTED ***"
+		Connect()
 	if not readbuffer:
 		break
 
@@ -400,14 +416,9 @@ while 1:
 						twitch = cmd["arg"][0]
 						stream = GetStreamInfo(twitch)
 						if stream["error"] == 0:
-							time1 = time.strptime(str(stream["stream_date"]), "%Y-%m-%dT%H:%M:%SZ")
-							time2 = time.strptime(str(datetime.datetime.utcnow()), "%Y-%m-%d %H:%M:%S.%f")
-							sec = time.mktime(time2) - time.mktime(time1)
-
-							reply = "%s streaming %s for %s(%s viewers | %s followers)" %(stream["streamer"], stream["game"], MinutesToDate(sec), stream["viewers"], stream["followers"])
+							reply = "%s streaming %s for %s(%s viewers | %s followers)" %(stream["streamer"], stream["game"], MinutesToDate(stream["uptime"]), stream["viewers"], stream["followers"])
 						else:
 							reply = stream["message"]
-
 						PRIVMSG(reply)
 
 
