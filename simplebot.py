@@ -101,6 +101,11 @@ def delword(word):
 #--------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------
+def StripUnicode(string):
+    return ''.join([x for x in string if ord(x) < 128])
+#--------------------------------------------------------------------------------
+
+#--------------------------------------------------------------------------------
 def GetPlayerName(steamid):
 	"""
 	GetPlayerName
@@ -320,7 +325,7 @@ def GetStreamInfo(name):
 				elif js["stream"]:
 						stream["title"] =			js["stream"]["channel"]["status"]
 						stream["viewers"] =			js["stream"]["viewers"]
-						stream["game"] =			js["stream"]["game"]
+						stream["game"] =			StripUnicode(js["stream"]["game"])
 						stream["name"] =			js["stream"]["channel"]["display_name"]
 						stream["streamer"] =		js["stream"]["channel"]["name"]
 						#stream["stream_date"] =	js["stream"]["channel"]["updated_at"]
@@ -375,6 +380,7 @@ while 1:
 	readbuffer = s.recv(1024)
 	if len(readbuffer) == 0:
 		print "*** DISCONNECTED ***"
+		s.close()
 		Connect()
 	if not readbuffer:
 		break
@@ -462,4 +468,3 @@ while 1:
 		# --- PING-PONG --------------------------------------------------------
 		elif(line.find('PING') != -1):
 			PONG(line.split(' ')[1].rstrip())
-s.close()
