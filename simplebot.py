@@ -339,7 +339,7 @@ def GetStreamInfo(name):
 
 							if len(js) > 0:
 								time1 = time.strptime(str(js[0]["up_time"]), "%a %b %d %H:%M:%S %Y")
-								time2 = time.strptime(str(datetime.now()-timedelta(hours=11)), "%Y-%m-%d %H:%M:%S.%f")
+								time2 = time.strptime(str(datetime.utcnow()-timedelta(hours=7)), "%Y-%m-%d %H:%M:%S.%f")
 								stream["uptime"] = time.mktime(time2) - time.mktime(time1)
 						except:
 							return {"error": 4, "message": "Can't load justin API" }
