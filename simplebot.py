@@ -207,6 +207,8 @@ def GetSteamID64(name):
 	Gathering STEAM64 identifier.
 	>>> GetSteamID64("5kr1p7")
 	'76561198072015441'
+	>>> GetSteamID64("76561197977339527")
+	'76561197977339527'
 	"""
 	if name.find('http://steamcommunity.com/profiles/') != -1:
 		k = name.rfind('/')
@@ -214,14 +216,13 @@ def GetSteamID64(name):
 			name = name[k+1:]
 
 	if re.match("^[A-Za-z0-9]*$", name):
-		url = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key='+steam_key+'&steamids='+name+'&format=json'
+		url = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=' +steam_key +'&steamids=' +name +'&format=json'
 		req = urllib2.urlopen(url)
 		js = json.loads(req.read())
-
 		if len(js['response']['players']) > 0:
-			return name
+			return str(js['response']['players'][0]['steamid'])
 		else:
-			url = 'http://steamcommunity.com/id/'+name+'?xml=1'
+			url = 'http://steamcommunity.com/id/' +name +'?xml=1'
 			try:
 				req = urllib2.urlopen(url)
 				xml = parse(req)
@@ -342,6 +343,9 @@ def GetStreamInfo(name):
 								time2 = time.strptime(str(datetime.utcnow()-timedelta(hours=8)), "%Y-%m-%d %H:%M:%S.%f")
 								stream["uptime"] = time.mktime(time2) - time.mktime(time1)
 						except:
+							print js
+							print time1
+							print time2
 							return {"error": 4, "message": "Can't load justin API" }
 
 						return stream
